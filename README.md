@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 PHP client for the [OKX v5 API](https://www.okx.com/docs-v5/en/). Covers the entire REST API (335 endpoints, 16
-categories) and WebSocket API (53 channels). Works standalone or plugs into Laravel 11/12 via a Service Provider.
+categories) and WebSocket API (53 channels). Works standalone or plugs into Laravel 11/12/13 via a Service Provider.
 
 Go
 version: [tigusigalpa/okx-go](https://github.com/tigusigalpa/okx-go) | [Wiki](https://github.com/tigusigalpa/okx-php/wiki)
@@ -26,7 +26,7 @@ version: [tigusigalpa/okx-go](https://github.com/tigusigalpa/okx-go) | [Wiki](ht
 
 - PHP 8.2+
 - Composer
-- Laravel 11 or 12 (optional)
+- Laravel 11, 12 or 13 (optional)
 
 ## Installation
 

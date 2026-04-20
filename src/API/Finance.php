@@ -221,8 +221,8 @@ class Finance extends BaseAPI
 
     public function getFlexibleLoanMaxLoan(string $ccy): array
     {
-        return $this->client->request('POST', '/api/v5/finance/flexible-loan/max-loan', [
-            'json' => ['ccy' => $ccy],
+        return $this->client->request('GET', '/api/v5/finance/flexible-loan/max-loan', [
+            'query' => ['ccy' => $ccy],
         ]);
     }
 

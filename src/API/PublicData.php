@@ -11,12 +11,12 @@ class PublicData extends BaseAPI
         return $this->client->request('GET', '/api/v5/public/block-volume');
     }
 
-    public function convertContractCoin(?string $type = null, ?string $instId = null, ?string $sz = null, ?string $px = null, ?string $unit = null): array
+    public function convertContractCoin(string $instId, string $sz, ?string $type = null, ?string $px = null, ?string $unit = null): array
     {
         $query = array_filter([
-            'type' => $type,
             'instId' => $instId,
             'sz' => $sz,
+            'type' => $type,
             'px' => $px,
             'unit' => $unit,
         ], fn($v) => $v !== null);
@@ -186,7 +186,7 @@ class PublicData extends BaseAPI
         return $this->client->request('GET', '/api/v5/public/open-interest', ['query' => $query]);
     }
 
-    public function getOptSummary(?string $uly = null, ?string $expTime = null, ?string $instFamily = null): array
+    public function getOptSummary(string $uly, ?string $expTime = null, ?string $instFamily = null): array
     {
         $query = array_filter([
             'uly' => $uly,

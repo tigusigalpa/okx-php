@@ -379,10 +379,10 @@ class TradingBot extends BaseAPI
         ]);
     }
 
-    public function stopGridOrderAlgo(array $algoIds): array
+    public function stopGridOrderAlgo(array $orders): array
     {
         return $this->client->request('POST', '/api/v5/tradingBot/grid/stop-order-algo', [
-            'json' => [['algoId' => $algoIds[0]]],
+            'json' => $orders,
         ]);
     }
 
@@ -424,10 +424,10 @@ class TradingBot extends BaseAPI
         return $this->client->request('POST', '/api/v5/tradingBot/recurring/order-algo', ['json' => $data]);
     }
 
-    public function stopRecurringOrderAlgo(array $algoIds): array
+    public function stopRecurringOrderAlgo(array $orders): array
     {
         return $this->client->request('POST', '/api/v5/tradingBot/recurring/stop-order-algo', [
-            'json' => [['algoId' => $algoIds[0]]],
+            'json' => $orders,
         ]);
     }
 
@@ -520,10 +520,10 @@ class TradingBot extends BaseAPI
         ]);
     }
 
-    public function stopSignalOrderAlgo(array $algoIds): array
+    public function stopSignalOrderAlgo(array $orders): array
     {
         return $this->client->request('POST', '/api/v5/tradingBot/signal/stop-order-algo', [
-            'json' => [['algoId' => $algoIds[0]]],
+            'json' => $orders,
         ]);
     }
 

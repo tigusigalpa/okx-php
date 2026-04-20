@@ -45,7 +45,7 @@ class Trade extends BaseAPI
         return $this->client->request('GET', '/api/v5/trade/fills', ['query' => $query]);
     }
 
-    public function getFillsHistory(?string $instType = null, ?string $uly = null, ?string $instId = null, ?string $ordId = null, ?string $after = null, ?string $before = null, ?string $begin = null, ?string $end = null, ?int $limit = null, ?string $instFamily = null): array
+    public function getFillsHistory(string $instType, ?string $uly = null, ?string $instId = null, ?string $ordId = null, ?string $after = null, ?string $before = null, ?string $begin = null, ?string $end = null, ?int $limit = null, ?string $instFamily = null): array
     {
         $query = array_filter([
             'instType' => $instType,
@@ -157,7 +157,7 @@ class Trade extends BaseAPI
         return $this->client->request('GET', '/api/v5/trade/orders-algo-pending', ['query' => $query]);
     }
 
-    public function getOrdersHistory(?string $instType = null, ?string $uly = null, ?string $instId = null, ?string $ordType = null, ?string $state = null, ?string $after = null, ?string $before = null, ?string $begin = null, ?string $end = null, ?int $limit = null, ?string $instFamily = null): array
+    public function getOrdersHistory(string $instType, ?string $uly = null, ?string $instId = null, ?string $ordType = null, ?string $state = null, ?string $after = null, ?string $before = null, ?string $begin = null, ?string $end = null, ?int $limit = null, ?string $instFamily = null): array
     {
         $query = array_filter([
             'instType' => $instType,
@@ -176,7 +176,7 @@ class Trade extends BaseAPI
         return $this->client->request('GET', '/api/v5/trade/orders-history', ['query' => $query]);
     }
 
-    public function getOrdersHistoryArchive(?string $instType = null, ?string $uly = null, ?string $instId = null, ?string $ordType = null, ?string $state = null, ?string $after = null, ?string $before = null, ?string $begin = null, ?string $end = null, ?int $limit = null, ?string $instFamily = null): array
+    public function getOrdersHistoryArchive(string $instType, ?string $uly = null, ?string $instId = null, ?string $ordType = null, ?string $state = null, ?string $after = null, ?string $before = null, ?string $begin = null, ?string $end = null, ?int $limit = null, ?string $instFamily = null): array
     {
         $query = array_filter([
             'instType' => $instType,
@@ -302,7 +302,7 @@ class Trade extends BaseAPI
         return $this->client->request('POST', '/api/v5/trade/cancel-order', ['json' => $data]);
     }
 
-    public function closePosition(string $instId, ?string $mgnMode = null, ?string $posSide = null, ?string $ccy = null, ?bool $autoCxl = null, ?string $clOrdId = null, ?string $tag = null): array
+    public function closePosition(string $instId, string $mgnMode, ?string $posSide = null, ?string $ccy = null, ?bool $autoCxl = null, ?string $clOrdId = null, ?string $tag = null): array
     {
         $data = array_filter([
             'instId' => $instId,

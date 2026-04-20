@@ -158,8 +158,8 @@ class Asset extends BaseAPI
 
     public function setLendingRate(string $ccy, string $rate): array
     {
-        return $this->client->request('GET', '/api/v5/asset/set-lending-rate', [
-            'query' => ['ccy' => $ccy, 'rate' => $rate],
+        return $this->client->request('POST', '/api/v5/asset/set-lending-rate', [
+            'json' => ['ccy' => $ccy, 'rate' => $rate],
         ]);
     }
 

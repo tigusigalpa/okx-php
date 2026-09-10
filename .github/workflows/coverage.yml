@@ -38,7 +38,7 @@ jobs:
         run: XDEBUG_MODE=coverage vendor/bin/phpunit --coverage-clover=coverage.xml --coverage-text
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           use_oidc: true
           files: coverage.xml

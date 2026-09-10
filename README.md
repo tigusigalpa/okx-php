@@ -5,7 +5,7 @@
 [![Tests](https://github.com/tigusigalpa/okx-php/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/tigusigalpa/okx-php/actions/workflows/tests.yml)
 [![Coverage](https://github.com/tigusigalpa/okx-php/actions/workflows/coverage.yml/badge.svg?branch=main)](https://github.com/tigusigalpa/okx-php/actions/workflows/coverage.yml)
 [![Quality](https://github.com/tigusigalpa/okx-php/actions/workflows/quality.yml/badge.svg?branch=main)](https://github.com/tigusigalpa/okx-php/actions/workflows/quality.yml)
-[![CodeQL](https://github.com/tigusigalpa/okx-php/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/tigusigalpa/okx-php/actions/workflows/codeql.yml)
+[![CodeQL Workflows](https://github.com/tigusigalpa/okx-php/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/tigusigalpa/okx-php/actions/workflows/codeql.yml)
 [![codecov](https://codecov.io/gh/tigusigalpa/okx-php/graph/badge.svg)](https://codecov.io/gh/tigusigalpa/okx-php)
 [![PHP Version](https://img.shields.io/badge/php-%5E8.2-blue.svg)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)

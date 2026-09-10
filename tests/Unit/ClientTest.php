@@ -7,11 +7,13 @@ namespace Tigusigalpa\OKX\Tests\Unit;
 use GuzzleHttp\Client as HttpClient;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
 use Tigusigalpa\OKX\Client;
 use Tigusigalpa\OKX\Exceptions\AuthenticationException;
 use Tigusigalpa\OKX\Exceptions\OKXException;
 use Tigusigalpa\OKX\Exceptions\RateLimitException;
+use Tigusigalpa\OKX\Signer;
 use Tigusigalpa\OKX\Tests\TestCase;
 
 class ClientTest extends TestCase
@@ -126,6 +128,121 @@ class ClientTest extends TestCase
         $client->request('GET', '/api/v5/account/balance');
 
         $this->assertTrue(true);
+    }
+
+    public function test_get_request_signs_the_encoded_query_string(): void
+    {
+        $history = [];
+        $mock = new MockHandler([
+            new Response(200, [], json_encode(['code' => '0', 'msg' => '', 'data' => []])),
+        ]);
+        $handlerStack = HandlerStack::create($mock);
+        $handlerStack->push(Middleware::history($history));
+
+        $client = new Client(
+            apiKey: 'test-api-key',
+            secretKey: 'test-secret-key',
+            passphrase: 'test-passphrase',
+            httpClient: new HttpClient(['handler' => $handlerStack])
+        );
+
+        $client->account()->getBalance('BTC');
+
+        $request = $history[0]['request'];
+        $requestPath = '/api/v5/account/balance?ccy=BTC';
+        $timestamp = $request->getHeaderLine('OK-ACCESS-TIMESTAMP');
+
+        $this->assertSame($requestPath, $request->getRequestTarget());
+        $this->assertSame(
+            (new Signer('test-secret-key'))->sign($timestamp, 'GET', $requestPath),
+            $request->getHeaderLine('OK-ACCESS-SIGN')
+        );
+    }
+
+    public function test_post_request_signs_the_exact_json_body_sent_to_okx(): void
+    {
+        $history = [];
+        $mock = new MockHandler([
+            new Response(200, [], json_encode(['code' => '0', 'msg' => '', 'data' => []])),
+        ]);
+        $handlerStack = HandlerStack::create($mock);
+        $handlerStack->push(Middleware::history($history));
+
+        $client = new Client(
+            apiKey: 'test-api-key',
+            secretKey: 'test-secret-key',
+            passphrase: 'test-passphrase',
+            httpClient: new HttpClient(['handler' => $handlerStack])
+        );
+
+        $client->request('POST', '/api/v5/trade/order', [
+            'json' => ['instId' => 'BTC-USDT', 'sz' => '0.01'],
+        ]);
+
+        $request = $history[0]['request'];
+        $body = (string) $request->getBody();
+        $timestamp = $request->getHeaderLine('OK-ACCESS-TIMESTAMP');
+
+        $this->assertSame('{"instId":"BTC-USDT","sz":"0.01"}', $body);
+        $this->assertSame(
+            (new Signer('test-secret-key'))->sign($timestamp, 'POST', '/api/v5/trade/order', $body),
+            $request->getHeaderLine('OK-ACCESS-SIGN')
+        );
+    }
+
+    public function test_detailed_order_error_is_available_on_the_exception(): void
+    {
+        $rawResponse = json_encode([
+            'code' => '1',
+            'msg' => 'All operations failed',
+            'data' => [[
+                'sCode' => '54070',
+                'sMsg' => 'Use the attachAlgoOrds array to place orders via Open API',
+            ]],
+        ]);
+        $mock = new MockHandler([new Response(200, [], $rawResponse)]);
+
+        $client = new Client(
+            apiKey: 'test-api-key',
+            secretKey: 'test-secret-key',
+            passphrase: 'test-passphrase',
+            httpClient: new HttpClient(['handler' => HandlerStack::create($mock)])
+        );
+
+        try {
+            $client->request('POST', '/api/v5/trade/order', ['json' => []]);
+            $this->fail('Expected an OKX exception.');
+        } catch (OKXException $e) {
+            $this->assertSame('1', $e->okxCode);
+            $this->assertSame($rawResponse, $e->rawResponse);
+            $this->assertSame('54070', $e->response['data'][0]['sCode']);
+        }
+    }
+
+    public function test_http_error_with_an_okx_envelope_preserves_api_error_details(): void
+    {
+        $rawResponse = json_encode([
+            'code' => '50111',
+            'msg' => 'Invalid API key',
+            'data' => [],
+        ]);
+        $mock = new MockHandler([new Response(401, [], $rawResponse)]);
+
+        $client = new Client(
+            apiKey: 'test-api-key',
+            secretKey: 'test-secret-key',
+            passphrase: 'test-passphrase',
+            httpClient: new HttpClient(['handler' => HandlerStack::create($mock)])
+        );
+
+        try {
+            $client->request('GET', '/api/v5/account/balance');
+            $this->fail('Expected an authentication exception.');
+        } catch (AuthenticationException $e) {
+            $this->assertSame('50111', $e->okxCode);
+            $this->assertSame($rawResponse, $e->rawResponse);
+            $this->assertSame('Invalid API key', $e->response['msg']);
+        }
     }
 
     public function test_api_service_factories(): void

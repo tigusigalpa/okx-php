@@ -1,7 +1,12 @@
-# OKX PHP SDK
+# OKX PHP/Laravel Client/SDK/Library
 
-![OKX PHP client](https://i.postimg.cc/SKsrTr48/okx-php-banner.jpg)
+![OKX PHP client](https://i.postimg.cc/pTbK8Xsb/okx-php-laravel-hero.jpg)
 
+[![Tests](https://github.com/tigusigalpa/okx-php/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/tigusigalpa/okx-php/actions/workflows/tests.yml)
+[![Coverage](https://github.com/tigusigalpa/okx-php/actions/workflows/coverage.yml/badge.svg?branch=main)](https://github.com/tigusigalpa/okx-php/actions/workflows/coverage.yml)
+[![Quality](https://github.com/tigusigalpa/okx-php/actions/workflows/quality.yml/badge.svg?branch=main)](https://github.com/tigusigalpa/okx-php/actions/workflows/quality.yml)
+[![CodeQL](https://github.com/tigusigalpa/okx-php/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/tigusigalpa/okx-php/actions/workflows/codeql.yml)
+[![codecov](https://codecov.io/gh/tigusigalpa/okx-php/graph/badge.svg)](https://codecov.io/gh/tigusigalpa/okx-php)
 [![PHP Version](https://img.shields.io/badge/php-%5E8.2-blue.svg)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
@@ -79,12 +84,14 @@ $client = new Client(
     apiKey: 'your-api-key',
     secretKey: 'your-secret-key',
     passphrase: 'your-passphrase',
+    // Region::Us for US/AU accounts; Region::Eea for my.okx.com accounts.
+    region: \Tigusigalpa\OKX\Region::Global,
 );
 
 $balance = $client->account()->getBalance();
 
 $order = $client->trade()->placeOrder(
-    instId: 'BTC-USDT',
+    instId: 'BTC-USDT-SWAP',
     tdMode: 'cash',
     side: 'buy',
     ordType: 'market',
@@ -97,13 +104,29 @@ $trades = $client->market()->getTrades('BTC-USDT', limit: 100);
 
 ## Configuration
 
-| Option       | Env variable     | Default               |                              |
-|--------------|------------------|-----------------------|------------------------------|
-| `api_key`    | `OKX_API_KEY`    | `''`                  | API key                      |
-| `secret_key` | `OKX_SECRET_KEY` | `''`                  | Secret key                   |
-| `passphrase` | `OKX_PASSPHRASE` | `''`                  | Passphrase                   |
-| `demo`       | `OKX_DEMO`       | `false`               | Use demo trading environment |
-| `base_url`   | `OKX_BASE_URL`   | `https://www.okx.com` | Base URL                     |
+| Option       | Env variable     | Default                  |                              |
+|--------------|------------------|--------------------------|------------------------------|
+| `api_key`    | `OKX_API_KEY`    | `''`                     | API key                      |
+| `secret_key` | `OKX_SECRET_KEY` | `''`                     | Secret key                   |
+| `passphrase` | `OKX_PASSPHRASE` | `''`                     | Passphrase                   |
+| `demo`       | `OKX_DEMO`       | `false`                  | Use demo trading environment |
+| `region`     | `OKX_REGION`     | `global`                 | `global`, `us` (also AU), `eea`, or `tr` |
+| `base_url`   | `OKX_BASE_URL`   | Region-specific endpoint | Optional REST endpoint override |
+
+## Regional API domains
+
+OKX requires the API domain to match the region where the account was registered. Set `OKX_REGION` once; the REST and
+WebSocket clients then select the matching live and demo endpoints.
+
+| Account registration | `OKX_REGION` | REST endpoint | Live WebSocket host |
+|----------------------|--------------|---------------|---------------------|
+| Other regions | `global` | `https://openapi.okx.com` | `wss://ws.okx.com:8443` |
+| US or AU (`app.okx.com`) | `us` | `https://us.okx.com` | `wss://wsus.okx.com:8443` |
+| EEA (`my.okx.com`) | `eea` | `https://eea.okx.com` | `wss://wseea.okx.com:8443` |
+| Turkey | `tr` | `https://tr.okx.com` | `wss://ws.okx.com:8443` |
+
+For a standalone client, pass `region: Region::Us` or `region: Region::Eea`. `OKX_BASE_URL` remains available for a
+proxy or another explicit REST override. It does not change WebSocket hosts.
 
 ## REST API coverage
 
@@ -138,7 +161,8 @@ use Tigusigalpa\OKX\WebsocketClient;
 $ws = new WebsocketClient(
     apiKey: 'your-api-key',
     secretKey: 'your-secret-key',
-    passphrase: 'your-passphrase'
+    passphrase: 'your-passphrase',
+    region: \Tigusigalpa\OKX\Region::Eea,
 );
 
 $ws->connectPublic();
@@ -164,6 +188,8 @@ $ws->subscribe('account', ['ccy' => 'BTC'], function ($data) {
 $ws->run();
 ```
 
+For a public channel served from the business endpoint, call `connectBusiness(requiresAuth: false)`.
+
 Public channels include `tickers`, `books`, `books5`, `trades`, `candle*`, `index-tickers`, `mark-price`,
 `funding-rate`, `open-interest`, `liquidation-orders`, and others.
 
@@ -186,21 +212,48 @@ $client = new Client(
 
 ## Examples
 
-Order with TP/SL:
+Order with attached TP/SL:
 
 ```php
 $order = $client->trade()->placeOrder(
     instId: 'BTC-USDT',
-    tdMode: 'cross',
+    tdMode: 'isolated',
     side: 'buy',
-    ordType: 'limit',
+    ordType: 'market',
     sz: '0.1',
-    px: '50000',
-    tpTriggerPx: '55000',
-    tpOrdPx: '-1',
-    slTriggerPx: '48000',
-    slOrdPx: '-1'
+    attachAlgoOrds: [[
+        'tpTriggerPx' => '55000',
+        'tpOrdPx' => '-1', // -1 executes this TP at market price after triggering
+        'tpTriggerPxType' => 'last', // last, index, or mark
+        'slTriggerPx' => '48000',
+        'slOrdPx' => '-1',
+        'slTriggerPxType' => 'last',
+    ]],
 );
+```
+
+OKX may reject the legacy inline TP/SL fields with `sCode=54070`; prefer `attachAlgoOrds`. A typed request form is
+also available when it fits the application better:
+
+```php
+use Tigusigalpa\OKX\DTO\Trade\AttachAlgoOrderRequest;
+use Tigusigalpa\OKX\DTO\Trade\PlaceOrderRequest;
+
+$order = $client->trade()->placeOrderRequest(new PlaceOrderRequest(
+    instId: 'BTC-USDT-SWAP',
+    tdMode: 'isolated',
+    side: 'sell',
+    ordType: 'market',
+    sz: '1',
+    attachAlgoOrds: [new AttachAlgoOrderRequest(
+        tpTriggerPx: '64000',
+        tpOrdPx: '-1',
+        tpTriggerPxType: 'last',
+        slTriggerPx: '66000',
+        slOrdPx: '-1',
+        slTriggerPxType: 'last',
+    )],
+));
 ```
 
 Batch orders:
@@ -262,7 +315,8 @@ $withdrawal = $client->asset()->withdrawal(
 ## Error handling
 
 Each error type has its own exception class. They all extend `OKXException`, which carries the raw OKX error code in
-`$e->okxCode`.
+`$e->okxCode`. The decoded response envelope is also available in `$e->response`, so order-specific `data[0].sCode`
+and `sMsg` are not lost when the top-level API code is non-zero.
 
 ```php
 use Tigusigalpa\OKX\Exceptions\AuthenticationException;

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tigusigalpa\OKX\Tests\Unit;
 
 use Tigusigalpa\OKX\DTO\OKXResponse;
+use Tigusigalpa\OKX\DTO\Trade\AttachAlgoOrderRequest;
+use Tigusigalpa\OKX\DTO\Trade\PlaceOrderRequest;
 use Tigusigalpa\OKX\Tests\TestCase;
 
 class DTOTest extends TestCase
@@ -51,5 +53,30 @@ class DTOTest extends TestCase
         $this->assertEquals('0', $response->code);
         $this->assertEquals('', $response->msg);
         $this->assertEmpty($response->data);
+    }
+
+    public function test_place_order_request_serializes_attached_tpsl_without_null_fields(): void
+    {
+        $request = new PlaceOrderRequest(
+            instId: 'BTC-USDT-SWAP',
+            tdMode: 'isolated',
+            side: 'sell',
+            ordType: 'market',
+            sz: '1',
+            attachAlgoOrds: [new AttachAlgoOrderRequest(
+                tpTriggerPx: '64000',
+                tpOrdPx: '-1',
+                tpTriggerPxType: 'last',
+                slTriggerPx: '66000',
+                slOrdPx: '-1',
+                slTriggerPxType: 'last',
+            )]
+        );
+
+        $payload = $request->toArray();
+
+        $this->assertSame('-1', $payload['attachAlgoOrds'][0]['tpOrdPx']);
+        $this->assertSame('-1', $payload['attachAlgoOrds'][0]['slOrdPx']);
+        $this->assertArrayNotHasKey('sz', $payload['attachAlgoOrds'][0]);
     }
 }

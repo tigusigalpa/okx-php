@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Tigusigalpa\OKX\API;
 
+use Tigusigalpa\OKX\DTO\Trade\AttachAlgoOrderRequest;
+use Tigusigalpa\OKX\DTO\Trade\PlaceOrderRequest;
+
 class Trade extends BaseAPI
 {
     public function getAccountRateLimit(): array
@@ -357,7 +360,7 @@ class Trade extends BaseAPI
         ]);
     }
 
-    public function placeOrder(string $instId, string $tdMode, string $side, string $ordType, string $sz, ?string $ccy = null, ?string $clOrdId = null, ?string $tag = null, ?string $posSide = null, ?string $px = null, ?bool $reduceOnly = null, ?string $tgtCcy = null, ?bool $banAmend = null, ?string $tpTriggerPx = null, ?string $tpOrdPx = null, ?string $slTriggerPx = null, ?string $slOrdPx = null, ?string $tpTriggerPxType = null, ?string $slTriggerPxType = null, ?string $quickMgnType = null, ?string $stpId = null, ?string $stpMode = null, ?array $attachAlgoOrds = null): array
+    public function placeOrder(string $instId, string $tdMode, string $side, string $ordType, string $sz, ?string $ccy = null, ?string $clOrdId = null, ?string $tag = null, ?string $posSide = null, ?string $px = null, ?bool $reduceOnly = null, ?string $tgtCcy = null, ?bool $banAmend = null, ?string $tpTriggerPx = null, ?string $tpOrdPx = null, ?string $slTriggerPx = null, ?string $slOrdPx = null, ?string $tpTriggerPxType = null, ?string $slTriggerPxType = null, ?string $quickMgnType = null, ?string $stpId = null, ?string $stpMode = null, ?array $attachAlgoOrds = null, ?string $attachAlgoClOrdId = null): array
     {
         $data = array_filter([
             'instId' => $instId,
@@ -382,10 +385,34 @@ class Trade extends BaseAPI
             'quickMgnType' => $quickMgnType,
             'stpId' => $stpId,
             'stpMode' => $stpMode,
-            'attachAlgoOrds' => $attachAlgoOrds,
+            'attachAlgoClOrdId' => $attachAlgoClOrdId,
+            'attachAlgoOrds' => $this->normalizeAttachAlgoOrders($attachAlgoOrds),
         ], fn($v) => $v !== null);
 
         return $this->client->request('POST', '/api/v5/trade/order', ['json' => $data]);
+    }
+
+    public function placeOrderRequest(PlaceOrderRequest $request): array
+    {
+        return $this->client->request('POST', '/api/v5/trade/order', ['json' => $request->toArray()]);
+    }
+
+    /**
+     * @param array<AttachAlgoOrderRequest|array<string, mixed>>|null $orders
+     * @return array<array<string, mixed>>|null
+     */
+    private function normalizeAttachAlgoOrders(?array $orders): ?array
+    {
+        if ($orders === null) {
+            return null;
+        }
+
+        return array_map(
+            static fn(AttachAlgoOrderRequest|array $order): array => $order instanceof AttachAlgoOrderRequest
+                ? $order->toArray()
+                : array_filter($order, static fn(mixed $value): bool => $value !== null),
+            $orders
+        );
     }
 
     public function placeAlgoOrder(string $instId, string $tdMode, string $side, string $ordType, string $sz, ?string $ccy = null, ?string $posSide = null, ?bool $reduceOnly = null, ?string $tpTriggerPx = null, ?string $tpOrdPx = null, ?string $slTriggerPx = null, ?string $slOrdPx = null, ?string $tpTriggerPxType = null, ?string $slTriggerPxType = null, ?string $triggerPx = null, ?string $orderPx = null, ?string $triggerPxType = null, ?string $pxVar = null, ?string $pxSpread = null, ?string $szLimit = null, ?string $pxLimit = null, ?string $timeInterval = null, ?string $tgtCcy = null, ?string $algoClOrdId = null, ?string $tag = null, ?string $quickMgnType = null, ?string $closeFraction = null): array

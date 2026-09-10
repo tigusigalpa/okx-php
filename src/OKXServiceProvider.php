@@ -18,7 +18,8 @@ class OKXServiceProvider extends ServiceProvider
                 secretKey: config('okx.secret_key'),
                 passphrase: config('okx.passphrase'),
                 isDemo: config('okx.demo', false),
-                baseUrl: config('okx.base_url', 'https://www.okx.com'),
+                baseUrl: config('okx.base_url'),
+                region: config('okx.region', Region::Global->value),
             );
         });
 
@@ -28,6 +29,7 @@ class OKXServiceProvider extends ServiceProvider
                 secretKey: config('okx.secret_key'),
                 passphrase: config('okx.passphrase'),
                 isDemo: config('okx.demo', false),
+                region: config('okx.region', Region::Global->value),
             );
         });
     }

@@ -11,6 +11,7 @@ class OKXException extends \RuntimeException
         string $okxMessage,
         public readonly string $rawResponse = '',
         ?\Throwable $previous = null,
+        public readonly array $response = [],
     ) {
         parent::__construct(
             sprintf('OKX API error: code=%s, message=%s', $okxCode, $okxMessage),

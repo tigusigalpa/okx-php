@@ -31,6 +31,9 @@ readonly class PlaceOrderRequest extends BaseDTO
         public ?string $quickMgnType = null,
         public ?string $stpId = null,
         public ?string $stpMode = null,
+        public ?string $attachAlgoClOrdId = null,
+        /** @var array<AttachAlgoOrderRequest|array<string, mixed>>|null */
+        public ?array $attachAlgoOrds = null,
     ) {
     }
 }

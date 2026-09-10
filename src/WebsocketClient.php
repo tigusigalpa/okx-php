@@ -20,6 +20,9 @@ class WebsocketClient
     private ?int $lastPingTime = null;
     private LoggerInterface $logger;
     private Signer $signer;
+    private Region $region;
+    private ?string $connectionType = null;
+    private bool $requiresAuth = false;
 
     public function __construct(
         private readonly string $apiKey,
@@ -27,40 +30,32 @@ class WebsocketClient
         private readonly string $passphrase,
         private readonly bool $isDemo = false,
         ?LoggerInterface $logger = null,
+        Region|string $region = Region::Global,
     ) {
+        $this->region = Region::resolve($region);
         $this->logger = $logger ?? new NullLogger();
         $this->signer = new Signer($this->secretKey);
     }
 
     public function connectPublic(): void
     {
-        $url = $this->isDemo
-            ? 'wss://wspap.okx.com:8443/ws/v5/public'
-            : 'wss://ws.okx.com:8443/ws/v5/public';
-
-        $this->connect($url, false);
+        $this->connect('public', false);
     }
 
     public function connectPrivate(): void
     {
-        $url = $this->isDemo
-            ? 'wss://wspap.okx.com:8443/ws/v5/private'
-            : 'wss://ws.okx.com:8443/ws/v5/private';
-
-        $this->connect($url, true);
+        $this->connect('private', true);
     }
 
-    public function connectBusiness(): void
+    public function connectBusiness(bool $requiresAuth = true): void
     {
-        $url = $this->isDemo
-            ? 'wss://wspap.okx.com:8443/ws/v5/business'
-            : 'wss://ws.okx.com:8443/ws/v5/business';
-
-        $this->connect($url, true);
+        $this->connect('business', $requiresAuth);
     }
 
-    private function connect(string $url, bool $requiresAuth): void
+    private function connect(string $connectionType, bool $requiresAuth): void
     {
+        $url = $this->region->websocketUrl($connectionType, $this->isDemo);
+
         try {
             $this->connection = new WsClient($url);
             $this->logger->info('WebSocket connected', ['url' => $url]);
@@ -69,6 +64,8 @@ class WebsocketClient
                 $this->authenticate();
             }
 
+            $this->connectionType = $connectionType;
+            $this->requiresAuth = $requiresAuth;
             $this->isRunning = true;
             $this->lastPingTime = time();
         } catch (ConnectionException $e) {
@@ -242,12 +239,19 @@ class WebsocketClient
     {
         $this->logger->info('Attempting to reconnect...');
 
+        if ($this->connectionType === null) {
+            return;
+        }
+
+        $connectionType = $this->connectionType;
+        $requiresAuth = $this->requiresAuth;
+
         $this->stop();
 
         sleep(5);
 
         try {
-            $this->connectPublic();
+            $this->connect($connectionType, $requiresAuth);
 
             foreach ($this->subscriptions as $key => $callback) {
                 [$channel, $argsJson] = explode(':', $key, 2);

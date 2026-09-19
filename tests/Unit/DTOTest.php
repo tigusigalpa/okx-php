@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Tigusigalpa\OKX\Tests\Unit;
 
+use Tigusigalpa\OKX\DTO\Account\BalanceResponse;
+use Tigusigalpa\OKX\DTO\Market\TickerResponse;
 use Tigusigalpa\OKX\DTO\OKXResponse;
 use Tigusigalpa\OKX\DTO\Trade\AttachAlgoOrderRequest;
 use Tigusigalpa\OKX\DTO\Trade\PlaceOrderRequest;
+use Tigusigalpa\OKX\DTO\Trade\PlaceOrderResponse;
 use Tigusigalpa\OKX\Tests\TestCase;
 
 class DTOTest extends TestCase
@@ -78,5 +81,37 @@ class DTOTest extends TestCase
         $this->assertSame('-1', $payload['attachAlgoOrds'][0]['tpOrdPx']);
         $this->assertSame('-1', $payload['attachAlgoOrds'][0]['slOrdPx']);
         $this->assertArrayNotHasKey('sz', $payload['attachAlgoOrds'][0]);
+    }
+
+    public function test_balance_response_maps_balance_details(): void
+    {
+        $response = BalanceResponse::fromArray([
+            'uTime' => '1700000000000',
+            'totalEq' => '100',
+            'details' => [[
+                'ccy' => 'BTC',
+                'eq' => '1.5',
+                'cashBal' => '1.2',
+            ]],
+        ]);
+
+        self::assertSame('1700000000000', $response->uTime);
+        self::assertSame('100', $response->totalEq);
+        self::assertCount(1, $response->details);
+        self::assertSame('BTC', $response->details[0]->ccy);
+        self::assertSame('0', $response->details[0]->availEq);
+    }
+
+    public function test_ticker_and_place_order_responses_apply_okx_defaults(): void
+    {
+        $ticker = TickerResponse::fromArray(['instId' => 'BTC-USDT', 'last' => '50000']);
+        $order = PlaceOrderResponse::fromArray(['ordId' => '123', 'sCode' => '0']);
+
+        self::assertSame('BTC-USDT', $ticker->instId);
+        self::assertSame('50000', $ticker->last);
+        self::assertSame('0', $ticker->bidPx);
+        self::assertSame('123', $order->ordId);
+        self::assertSame('0', $order->sCode);
+        self::assertSame('', $order->sMsg);
     }
 }

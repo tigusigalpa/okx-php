@@ -5,12 +5,17 @@ declare(strict_types=1);
 namespace Tigusigalpa\OKX\Tests\Unit;
 
 use GuzzleHttp\Client as HttpClient;
+use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
+use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tigusigalpa\OKX\Client;
 use Tigusigalpa\OKX\Exceptions\AuthenticationException;
+use Tigusigalpa\OKX\Exceptions\InsufficientFundsException;
+use Tigusigalpa\OKX\Exceptions\InvalidParameterException;
 use Tigusigalpa\OKX\Exceptions\OKXException;
 use Tigusigalpa\OKX\Exceptions\RateLimitException;
 use Tigusigalpa\OKX\Signer;
@@ -269,5 +274,81 @@ class ClientTest extends TestCase
         $this->assertInstanceOf(\Tigusigalpa\OKX\API\Affiliate::class, $client->affiliate());
         $this->assertInstanceOf(\Tigusigalpa\OKX\API\Support::class, $client->support());
         $this->assertInstanceOf(\Tigusigalpa\OKX\API\SystemStatus::class, $client->systemStatus());
+    }
+
+    /** @return iterable<string, array{string, class-string<OKXException>}> */
+    public static function apiErrorCodes(): iterable
+    {
+        yield 'insufficient funds' => ['51008', InsufficientFundsException::class];
+        yield 'invalid parameter' => ['51000', InvalidParameterException::class];
+        yield 'generic API error' => ['1', OKXException::class];
+    }
+
+    /** @param class-string<OKXException> $exceptionClass */
+    #[DataProvider('apiErrorCodes')]
+    public function test_api_error_codes_are_mapped_to_the_correct_exception(string $code, string $exceptionClass): void
+    {
+        $mock = new MockHandler([new Response(200, [], json_encode([
+            'code' => $code,
+            'msg' => 'Expected error',
+            'data' => [],
+        ]))]);
+        $client = new Client(
+            apiKey: 'test-api-key',
+            secretKey: 'test-secret-key',
+            passphrase: 'test-passphrase',
+            httpClient: new HttpClient(['handler' => HandlerStack::create($mock)])
+        );
+
+        $this->expectException($exceptionClass);
+        $client->request('GET', '/api/v5/account/balance');
+    }
+
+    public function test_invalid_json_response_throws_an_okx_exception_with_the_raw_body(): void
+    {
+        $mock = new MockHandler([new Response(200, [], 'not-json')]);
+        $client = new Client(
+            apiKey: 'test-api-key',
+            secretKey: 'test-secret-key',
+            passphrase: 'test-passphrase',
+            httpClient: new HttpClient(['handler' => HandlerStack::create($mock)])
+        );
+
+        try {
+            $client->request('GET', '/api/v5/account/balance');
+            self::fail('Expected an OKX exception.');
+        } catch (OKXException $e) {
+            self::assertSame('INVALID_RESPONSE', $e->okxCode);
+            self::assertSame('not-json', $e->rawResponse);
+        }
+    }
+
+    public function test_unserializable_request_body_is_rejected_before_sending_a_request(): void
+    {
+        $client = new Client('test-api-key', 'test-secret-key', 'test-passphrase');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $client->request('POST', '/api/v5/trade/order', ['json' => ['price' => INF]]);
+    }
+
+    public function test_transport_errors_without_a_response_are_wrapped_as_okx_exceptions(): void
+    {
+        $mock = new MockHandler([
+            new ConnectException('Connection failed', new Request('GET', '/api/v5/account/balance')),
+        ]);
+        $client = new Client(
+            apiKey: 'test-api-key',
+            secretKey: 'test-secret-key',
+            passphrase: 'test-passphrase',
+            httpClient: new HttpClient(['handler' => HandlerStack::create($mock)])
+        );
+
+        try {
+            $client->request('GET', '/api/v5/account/balance');
+            self::fail('Expected an OKX exception.');
+        } catch (OKXException $e) {
+            self::assertSame('HTTP_ERROR', $e->okxCode);
+            self::assertSame('', $e->rawResponse);
+        }
     }
 }
